@@ -8,5 +8,5 @@ export const databaseConfig: SequelizeModuleOptions = {
   password: 'postgres',
   database: 'cookbook',
   autoLoadModels: true,
-  synchronize: true,
+  synchronize: true
 }; 

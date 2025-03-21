@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Res, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, HttpStatus, Get, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -10,7 +12,7 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) response: Response) {
-    const { token } = await this.authService.register(registerDto);
+    const { token, user } = await this.authService.register(registerDto);
     
     // Set token in httpOnly cookie
     response.cookie('token', token, {
@@ -20,13 +22,14 @@ export class AuthController {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
-    return { message: 'Registration successful' };
+    return { user };
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
-    const { token } = await this.authService.login(loginDto);
+    const { token, user } = await this.authService.login(loginDto);
+    
     // Set token in httpOnly cookie
     response.cookie('token', token, {
       httpOnly: true,
@@ -35,7 +38,7 @@ export class AuthController {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
-    return { message: 'Login successful' };
+    return { user };
   }
 
   @Post('logout')
@@ -44,5 +47,12 @@ export class AuthController {
     // Clear the token cookie
     response.clearCookie('token');
     return { message: 'Logout successful' };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@CurrentUser() user: any) {
+    const { password, ...userWithoutPassword } = user.toJSON();
+    return { user: userWithoutPassword };
   }
 } 
